@@ -33,12 +33,35 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
 
+LOG_DIR = "/tmp/tensorflow/mnist/logs/mnist_softmax"
+
+
+tf.summary.scalar('accuracy', accuracy)
+tf.summary.scalar('cross_entropy', cross_entropy)
+tf.summary.histogram('histogram_weight', w)
+tf.summary.histogram('histogram_bias', b)
+
+train_writer = tf.summary.FileWriter(LOG_DIR + '/train', sess.graph)
+test_writer = tf.summary.FileWriter(LOG_DIR + '/test')
+
+merged = tf.summary.merge_all()
+
 epoch = 1000
 for index in range(epoch):
     batch_xs, batch_ys = mnist.train.next_batch(100)
-    sess.run(train_step, feed_dict={x:batch_xs, y_:batch_ys})
+    summary, _ = sess.run([merged, train_step], feed_dict={x:batch_xs, y_:batch_ys})
+    train_writer.add_summary(summary, index)
     if index % 100 == 0 :
         print("epoch:",  index)
-        print("training accuracy:",sess.run(accuracy, feed_dict={x: mnist.train.images, y_: mnist.train.labels}))
-        print("test accuracy:", sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
+        summary, acc = sess.run([merged, accuracy], feed_dict={x: mnist.train.images, y_: mnist.train.labels})
+        train_writer.add_summary(summary, index)
+
+        print("training accuracy:",acc)
+        summary, acc = sess.run([merged, accuracy], feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+        test_writer.add_summary(summary, index)
+
+        print("test accuracy:",  acc)
 #print("test accuracy:", sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
+
+train_writer.close()
+test_writer.close()
