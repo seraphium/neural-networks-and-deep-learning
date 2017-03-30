@@ -150,7 +150,7 @@ def run_training():
 
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
-    print("log_dir:" + FLAGS.log_dir);
+
     # Instantiate a SummaryWriter to output summaries and the Graph.
     summary_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
 
