@@ -1,5 +1,5 @@
 import tensorflow as tf
-import numpy as np
+import os
 from tensorflow.examples.tutorials.mnist import input_data
 
 mnist = input_data.read_data_sets("MNIST_data", one_hot=True)
@@ -35,6 +35,7 @@ tf.global_variables_initializer().run()
 
 LOG_DIR = "/tmp/tensorflow/mnist/logs/mnist_softmax"
 
+saver = tf.train.Saver()
 
 tf.summary.scalar('accuracy', accuracy)
 tf.summary.scalar('cross_entropy', cross_entropy)
@@ -53,6 +54,8 @@ for index in range(epoch):
     train_writer.add_summary(summary, index)
     if index % 100 == 0 :
         print("epoch:",  index)
+        saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"), index)
+
         summary, acc = sess.run([merged, accuracy], feed_dict={x: mnist.train.images, y_: mnist.train.labels})
         train_writer.add_summary(summary, index)
 
