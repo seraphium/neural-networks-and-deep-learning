@@ -25,7 +25,7 @@ def random_captcha_text(char_set=number + alphabet + ALPHABET, captcha_size=4):
 def gen_captcha_text_and_image():
     image = ImageCaptcha()
 
-    captcha_text = random_captcha_text(char_set=number)
+    captcha_text = random_captcha_text(char_set=number + alphabet + ALPHABET)
     captcha_text = ''.join(captcha_text)
 
     captcha = image.generate(captcha_text)
