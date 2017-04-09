@@ -125,7 +125,6 @@ X = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT * IMAGE_WIDTH])
 Y = tf.placeholder(tf.float32, [None, MAX_CAPTCHA * CHAR_SET_LEN])
 keep_prob = tf.placeholder(tf.float32)  # dropout
 
-
 # 定义CNN
 def crack_captcha_cnn():
     x = tf.reshape(X, shape=[-1, IMAGE_HEIGHT, IMAGE_WIDTH, 1])
@@ -177,37 +176,47 @@ output = crack_captcha_cnn()
 # loss
 # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(output, Y))
 loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=output, labels=Y))
+tf.summary.scalar('loss', loss)
+
 # 最后一层用来分类的softmax和sigmoid有什么不同？
 # optimizer 为了加快训练 learning_rate应该开始大，然后慢慢衰
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.03).minimize(loss)
 
 predict = tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN])
 max_idx_p = tf.argmax(predict, 2)
 max_idx_l = tf.argmax(tf.reshape(Y, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
 correct_pred = tf.equal(max_idx_p, max_idx_l)
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+tf.summary.scalar('accuracy', accuracy)
 
 saver = tf.train.Saver()
 with tf.Session() as sess:
+
+    merged = tf.summary.merge_all()
     sess.run(tf.global_variables_initializer())
+    train_writer = tf.summary.FileWriter('/tmp/tensorflow/captcha/train', sess.graph)
 
     step = 0
     while True:
         batch_x, batch_y = get_next_batch(64)
-        _, loss_ = sess.run([optimizer, loss], feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.75})
-        print(step, "loss=",loss_)
-
-        # 每100 step计算一次准确率
+        summary, train_step, loss_ = sess.run([merged, optimizer, loss], feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.75})
+        print("step:",step, "loss =",loss_)
+        train_writer.add_summary(summary, step)        # 每100 step计算一次准确率
         if (step % 10 == 0) and (step != 0):
             batch_x_test, batch_y_test = get_next_batch(100)
-            acc = sess.run(accuracy, feed_dict={X: batch_x_test, Y: batch_y_test, keep_prob: 1.})
-            print(step, "accuracy=",acc)
+            summary, acc = sess.run([merged, accuracy], feed_dict={X: batch_x_test, Y: batch_y_test, keep_prob: 1.})
+            print(step, "accuracy =",acc)
+            train_writer.add_summary(summary, step)
+
             # 如果准确率大于50%,保存模型,完成训练
-           # if acc > 0.5:
-            saver.save(sess, "crack_capcha.model", global_step=step)
-            break
+            if acc > 0.5:
+                saver.save(sess, "crack_capcha.model", global_step=step)
+
+                break
 
         step += 1
+
+    train_writer.close()
 
     text, image = gen_captcha_text_and_image()
 
