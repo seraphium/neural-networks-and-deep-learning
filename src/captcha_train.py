@@ -12,6 +12,8 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import optimizers
+from keras import losses
+from keras.models import load_model
 
 
 text, image = gen_captcha_text_and_image()
@@ -128,11 +130,7 @@ def crack_captcha_cnn():
     model = Sequential()
     # input: 100x100 images with 3 channels -> (100, 100, 3) tensors.
     # this applies 32 convolution filters of size 3x3 each.
-    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 1)))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(Conv2D(32, (5, 5), activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 1)))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
 
@@ -151,8 +149,8 @@ path = ""
 # 训练
 model = crack_captcha_cnn()
 # loss
-optimizer = optimizers.SGD(lr=0.1, momentum=0.1, decay=0.0, nesterov=False)
-model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['mae', 'acc'])
+optimizer = optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True)
+model.compile(loss=losses.mean_squared_error, optimizer=optimizer, metrics=['mae', 'acc'])
 
 '''
 predict = tf.reshape(model, [-1, MAX_CAPTCHA, CHAR_SET_LEN])
@@ -165,19 +163,18 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 
 def train():
-    batch_x, batch_y = get_next_batch(1000)
-    model.fit(batch_x, batch_y, batch_size=20, epochs=1000)
-
+    batch_x, batch_y = get_next_batch(10000)
+    model.fit(batch_x, batch_y, batch_size=10, epochs=1000)
+    model.save("captcha.h5")
 
 train()
 
-
+'''
 def test():
-    saver = tf.train.Saver()
-    with tf.Session() as sess:
+    model = load_model('my_model.h5')
+    classes = model.predict(x_test, batch_size=128)
 
-        saver.restore(sess, "/tmp/tensorflow/captcha/crack_capcha.ckpt")
-        for _ in range(10):
+    for _ in range(10):
             text, image = gen_captcha_text_and_image()
 
             # f = plt.figure()
@@ -193,6 +190,8 @@ def test():
             text_list = sess.run(predict, feed_dict={X: [image], keep_prob: 1})
             predict_text = text_list[0].tolist()
             print("正确: {}  预测: {}".format(text, predict_text))
+'''
+
 
 #test()
 
